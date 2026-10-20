@@ -97,6 +97,8 @@ const settingService = {
 		if (typeof settingRow.domainMapping === 'string') {
 			settingRow.domainMapping = JSON.parse(settingRow.domainMapping || '{}');
 		}
+		settingRow.pushplusStatus = settingRow.pushplusStatus ?? 1;
+		settingRow.pushplusToken = settingRow.pushplusToken ?? '';
 
 		c.set?.('setting', settingRow);
 		return settingRow;
@@ -122,6 +124,7 @@ const settingService = {
 
 		settingRow.s3AccessKey = settingRow.s3AccessKey ? `${settingRow.s3AccessKey.slice(0, 12)}******` : null;
 		settingRow.s3SecretKey = settingRow.s3SecretKey ? `${settingRow.s3SecretKey.slice(0, 12)}******` : null;
+		settingRow.pushplusToken = settingRow.pushplusToken ? `${settingRow.pushplusToken.slice(0, 6)}******` : '';
 		settingRow.hasR2 = !!c.env.r2
 		settingRow.hasAi = !!c.env.ai
 		settingRow.aiModel = resolveAiModel(settingRow.aiModel, c.env.ai_model)
@@ -158,6 +161,11 @@ const settingService = {
 		delete params.regVerifyOpen
 		delete params.addVerifyOpen
 		delete params.storageType
+
+		// 设置页回传的是掩码时保留原 Token，避免把真实 Token 覆盖成掩码
+		if (params.pushplusToken == null || String(params.pushplusToken).includes('******')) {
+			delete params.pushplusToken;
+		}
 
 		if (params.aiModel) {
 			params.aiModel = resolveAiModel(params.aiModel);

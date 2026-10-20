@@ -68,6 +68,8 @@ export const setting = sqliteTable('setting', {
 	aiCode: integer('ai_code').default(0).notNull(),
 	aiCodeFilter: text('ai_code_filter').default('').notNull(),
 	aiModel: text('ai_model').default('@cf/meta/llama-3.1-8b-instruct-fast').notNull(),
-	newEmailNotify: integer('new_email_notify').default(0).notNull()
+	newEmailNotify: integer('new_email_notify').default(0).notNull(),
+	pushplusStatus: integer('pushplus_status').default(1).notNull(),
+	pushplusToken: text('pushplus_token').default('').notNull()
 });
 export default setting

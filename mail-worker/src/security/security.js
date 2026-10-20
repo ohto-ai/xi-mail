@@ -8,10 +8,12 @@ import permService from '../service/perm-service';
 import sessionService from '../service/session-service';
 import { t } from '../i18n/i18n'
 import app from '../hono/hono';
+import { isAdminUser } from '../utils/admin-utils';
 
 const exclude = [
 	'/login',
 	'/register',
+	'/email/view',
 	'/oss',
 	'/setting/websiteConfig',
 	'/webhooks',
@@ -151,7 +153,7 @@ app.use('*', async (c, next) => {
 			return path.startsWith(item);
 		});
 
-		if (userPermIndex === -1 && authInfo.user.email !== c.env.admin) {
+		if (userPermIndex === -1 && !isAdminUser(c.env, authInfo.user)) {
 			throw new BizError(t('unauthorized'), 403);
 		}
 

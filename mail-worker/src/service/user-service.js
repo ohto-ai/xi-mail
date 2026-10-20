@@ -23,6 +23,7 @@ import oauthService from "./oauth-service";
 import accountTransfer from '../entity/account-transfer';
 import userContext from '../security/user-context';
 import sessionService from './session-service';
+import { isAdminUser } from '../utils/admin-utils';
 
 const userService = {
 
@@ -37,7 +38,7 @@ const userService = {
 		let [account, roleRow, permKeys] = await Promise.all([
 			accountService.selectByEmailIncludeDel(c, userRow.email),
 			roleService.selectById(c, userRow.type),
-			userRow.email === c.env.admin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
+			isAdminUser(c.env, userRow) ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
 		]);
 
 		// Auto-create primary account for users who don't have one (e.g. migrated users)
@@ -70,10 +71,12 @@ const userService = {
 		user.type = userRow.type;
 		user.lang = userRow.lang || '';
 
-		if (c.env.admin === userRow.email) {
+		if (isAdminUser(c.env, userRow)) {
 			user.role = constant.ADMIN_ROLE
 			user.type = 0;
 		}
+
+		user.primaryAdmin = userRow.email === c.env.admin;
 
 		return user;
 	},
@@ -284,13 +287,16 @@ const userService = {
 				sendAction.hasPerm = false;
 			}
 
-			if (user.email === c.env.admin) {
-				sendAction.sendType = constant.ADMIN_ROLE.sendType;
-				sendAction.sendCount = constant.ADMIN_ROLE.sendCount;
-				sendAction.hasPerm = true;
+			if (isAdminUser(c.env, user)) {
+				sendAction = {
+					sendType: constant.ADMIN_ROLE.sendType,
+					sendCount: constant.ADMIN_ROLE.sendCount,
+					hasPerm: true
+				};
 				user.type = 0
 			}
 
+			user.primaryAdmin = user.email === c.env.admin;
 			user.sendAction = sendAction;
 		}
 
@@ -363,12 +369,29 @@ const userService = {
 
 	async setType(c, params) {
 
-		const { type, userId } = params;
+		const { userId } = params;
+		const type = Number(params.type);
 
-		const roleRow = await roleService.selectById(c, type);
+		const currentUser = c.get('user');
+		const currentIsAdmin = isAdminUser(c.env, currentUser);
 
-		if (!roleRow) {
-			throw new BizError(t('roleNotExist'));
+		const targetUser = await this.selectById(c, userId);
+
+		if (!targetUser) {
+			throw new BizError(t('notExistUser'));
+		}
+
+		// 只有管理员可以授予管理员身份，非管理员也不能修改管理员
+		if (!currentIsAdmin && (type === 0 || isAdminUser(c.env, targetUser))) {
+			throw new BizError(t('unauthorized'), 403);
+		}
+
+		if (type !== 0) {
+			const roleRow = await roleService.selectById(c, type);
+
+			if (!roleRow) {
+				throw new BizError(t('roleNotExist'));
+			}
 		}
 
 		await orm(c)
@@ -376,6 +399,13 @@ const userService = {
 			.set({ type })
 			.where(eq(user.userId, userId))
 			.run();
+
+		// 同步会话缓存中的身份，让升降级立即生效，无需重新登录
+		const authInfo = await sessionService.get(c, userId);
+		if (authInfo?.user) {
+			authInfo.user.type = type;
+			await sessionService.save(c, userId, authInfo);
+		}
 
 	},
 
@@ -397,7 +427,8 @@ const userService = {
 
 	async add(c, params) {
 
-		const { email, type, password } = params;
+		const { email, password } = params;
+		const type = Number(params.type);
 
 		const setting = await settingService.query(c);
 		if (!settingService.isDomainValid(setting, emailUtils.getDomain(email))) {
@@ -418,10 +449,17 @@ const userService = {
 			throw new BizError(t('isRegAccount'));
 		}
 
-		const role = roleService.selectById(c, type);
+		if (type === 0) {
+			const currentUser = c.get('user');
+			if (!isAdminUser(c.env, currentUser)) {
+				throw new BizError(t('unauthorized'), 403);
+			}
+		} else {
+			const role = await roleService.selectById(c, type);
 
-		if (!role) {
-			throw new BizError(t('roleNotExist'));
+			if (!role) {
+				throw new BizError(t('roleNotExist'));
+			}
 		}
 
 		const { salt, hash } = await saltHashUtils.hashPassword(password);

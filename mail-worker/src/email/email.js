@@ -11,6 +11,8 @@ import roleService from '../service/role-service';
 import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
+import pushplusService from '../service/pushplus-service';
+import { isAdminUser } from '../utils/admin-utils';
 
 function matchDomainList(list, address) {
 	if (!address) return false;
@@ -44,7 +46,10 @@ export async function email(message, env, ctx) {
 			senderDomainWhitelist,
 			aiCode,
 			aiCodeFilter,
-			aiModel
+			aiModel,
+			pushplusStatus,
+			pushplusToken,
+			customDomain
 		} = await settingService.query({ env });
 
 		if (receive === settingConst.receive.CLOSE) {
@@ -138,7 +143,7 @@ export async function email(message, env, ctx) {
 			 userRow = await userService.selectByIdIncludeDel({ env: env }, account.userId);
 		}
 
-		if (account && userRow.email !== env.admin) {
+		if (account && !isAdminUser(env, userRow)) {
 
 			let { banEmail, availDomain } = await roleService.selectByUserId({ env: env }, account.userId);
 
@@ -231,6 +236,11 @@ export async function email(message, env, ctx) {
 		//转发到TG
 		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
 			await telegramService.sendEmailToBot({ env }, emailRow)
+		}
+
+		//推送到微信（PushPlus）
+		if (pushplusStatus === settingConst.pushplusStatus.OPEN && pushplusToken) {
+			ctx.waitUntil(pushplusService.sendEmail({ env }, emailRow, { pushplusStatus, pushplusToken, customDomain }));
 		}
 
 		//转发到其他邮箱

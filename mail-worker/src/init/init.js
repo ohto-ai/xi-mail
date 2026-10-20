@@ -43,6 +43,7 @@ const dbInit = {
 		await this.v4_2DB(c);
 		await this.v4_3DB(c);
 		await this.v4_4DB(c);
+		await this.v4_5DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
 	},
@@ -252,6 +253,15 @@ const dbInit = {
 	async v4_4DB(c) {
 		try {
 			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN ai_model TEXT NOT NULL DEFAULT '@cf/meta/llama-3.1-8b-instruct-fast';`).run();
+		} catch (e) {}
+	},
+
+	async v4_5DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN pushplus_status INTEGER NOT NULL DEFAULT 1;`).run();
+		} catch (e) {}
+		try {
+			await c.env.db.prepare(`ALTER TABLE setting ADD COLUMN pushplus_token TEXT NOT NULL DEFAULT '';`).run();
 		} catch (e) {}
 	},
 
@@ -688,7 +698,7 @@ const dbInit = {
         INSERT INTO role (
           role_id, name, key, create_time, sort, description, user_id, is_default, send_count, send_type, account_count
         ) VALUES (
-          1, '普通用户', NULL, '0000-00-00 00:00:00', 0, '只有普通使用权限', 0, 1, NULL, 'ban', 10
+          1, '普通用户', NULL, '0000-00-00 00:00:00', 0, '只有普通使用权限', 0, 1, 40, 'day', 10
         )
       `).run();
 		}

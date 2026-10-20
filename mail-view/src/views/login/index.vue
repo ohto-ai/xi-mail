@@ -201,13 +201,14 @@ AUTH  WAITING
               <div class="input-group" :class="{ 'has-suffix': settingStore.settings.loginDomain === 0 && hasDomains }">
                 <div class="input-main">
                   <Icon class="input-icon" icon="mingcute:mail-line" width="16" height="16" />
-                  <input v-model="form.email" type="text" autocomplete="off"
+                  <input ref="loginEmailRef" v-model="form.email" type="text" autocomplete="off"
+                    @keyup.enter="focusLoginPassword"
                     :placeholder="(settingStore.settings.loginDomain === 0 && hasDomains) ? 'username' : $t('emailAccount')" />
                 </div>
                 <div v-if="settingStore.settings.loginDomain === 0 && hasDomains" class="input-suffix" @click.stop="openSelect">
                   <span>{{ suffix }}</span>
                   <Icon icon="mingcute:down-line" width="11" height="11" />
-                  <el-select v-if="show === 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
+                  <el-select v-if="show === 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :tabindex="-1" :popper-class="suffixPopperClass">
                     <el-option v-for="d in domainList" :key="d" :label="d" :value="d" />
                   </el-select>
                 </div>
@@ -218,7 +219,8 @@ AUTH  WAITING
               <label>{{ $t('password') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:lock-line" width="16" height="16" />
-                <input v-model="form.password" :type="showPwd ? 'text' : 'password'" autocomplete="off" :placeholder="$t('password')" />
+                <input ref="loginPasswordRef" v-model="form.password" :type="showPwd ? 'text' : 'password'" autocomplete="off"
+                  @keyup.enter="submit" :placeholder="$t('password')" />
                 <button class="toggle-pwd" @click="showPwd = !showPwd" type="button" tabindex="-1">
                   <Icon :icon="showPwd ? 'mingcute:eye-line' : 'mingcute:eye-close-line'" width="15" height="15" />
                 </button>
@@ -246,13 +248,14 @@ AUTH  WAITING
               <div class="input-group" :class="{ 'has-suffix': hasDomains }">
                 <div class="input-main">
                   <Icon class="input-icon" icon="mingcute:mail-line" width="16" height="16" />
-                  <input v-model="registerForm.email" type="text" autocomplete="off"
+                  <input ref="registerEmailRef" v-model="registerForm.email" type="text" autocomplete="off"
+                    @keyup.enter="focusRegisterPassword"
                     :placeholder="hasDomains ? 'username' : $t('emailAccount')" />
                 </div>
                 <div v-if="hasDomains" class="input-suffix" @click.stop="openSelect">
                   <span>{{ suffix }}</span>
                   <Icon icon="mingcute:down-line" width="11" height="11" />
-                  <el-select v-if="show !== 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
+                  <el-select v-if="show !== 'login'" ref="mySelect" v-model="suffix" class="hidden-select" :tabindex="-1" :popper-class="suffixPopperClass">
                     <el-option v-for="d in domainList" :key="d" :label="d" :value="d" />
                   </el-select>
                 </div>
@@ -263,7 +266,8 @@ AUTH  WAITING
               <label>{{ $t('password') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:lock-line" width="16" height="16" />
-                <input v-model="registerForm.password" :type="showPwd ? 'text' : 'password'" autocomplete="off" :placeholder="$t('password')" />
+                <input ref="registerPasswordRef" v-model="registerForm.password" :type="showPwd ? 'text' : 'password'" autocomplete="off"
+                  @keyup.enter="focusRegisterConfirm" :placeholder="$t('password')" />
                 <button class="toggle-pwd" @click="showPwd = !showPwd" type="button" tabindex="-1">
                   <Icon :icon="showPwd ? 'mingcute:eye-line' : 'mingcute:eye-close-line'" width="15" height="15" />
                 </button>
@@ -274,7 +278,8 @@ AUTH  WAITING
               <label>{{ $t('confirmPwd') }}</label>
               <div class="input-main standalone" :class="{ error: registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword }">
                 <Icon class="input-icon" icon="mingcute:lock-check-line" width="16" height="16" />
-                <input v-model="registerForm.confirmPassword" :type="showConfirmPwd ? 'text' : 'password'" autocomplete="off" :placeholder="$t('confirmPwd')" />
+                <input ref="registerConfirmRef" v-model="registerForm.confirmPassword" :type="showConfirmPwd ? 'text' : 'password'" autocomplete="off"
+                  @keyup.enter="focusRegisterCodeOrSubmit" :placeholder="$t('confirmPwd')" />
                 <button class="toggle-pwd" @click="showConfirmPwd = !showConfirmPwd" type="button" tabindex="-1">
                   <Icon :icon="showConfirmPwd ? 'mingcute:eye-line' : 'mingcute:eye-close-line'" width="15" height="15" />
                 </button>
@@ -285,7 +290,8 @@ AUTH  WAITING
               <label>{{ settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional') }}</label>
               <div class="input-main standalone">
                 <Icon class="input-icon" icon="mingcute:key-2-line" width="16" height="16" />
-                <input v-model="registerForm.code" type="text" autocomplete="off"
+                <input ref="registerCodeRef" v-model="registerForm.code" type="text" autocomplete="off"
+                  @keyup.enter="submitRegister"
                   :placeholder="settingStore.settings.regKey === 0 ? $t('regKey') : $t('regKeyOptional')" />
               </div>
               <div class="reg-key-tips">
@@ -345,7 +351,7 @@ AUTH  WAITING
             <div v-if="hasDomains" class="input-suffix" @click.stop="openSelect">
               <span>{{ suffix }}</span>
               <Icon icon="mingcute:down-line" width="11" height="11" />
-              <el-select ref="mySelect" v-model="suffix" class="hidden-select" :popper-class="suffixPopperClass">
+              <el-select ref="mySelect" v-model="suffix" class="hidden-select" :tabindex="-1" :popper-class="suffixPopperClass">
                 <el-option v-for="d in domainList" :key="d" :label="d" :value="d" />
               </el-select>
             </div>
@@ -418,6 +424,12 @@ const showConfirmPwd = ref(false);
 const bindForm = reactive({ email: '', oauthUserId: '', code: '' });
 const form = reactive({ email: '', password: '' });
 const mySelect = ref();
+const loginEmailRef = ref();
+const loginPasswordRef = ref();
+const registerEmailRef = ref();
+const registerPasswordRef = ref();
+const registerConfirmRef = ref();
+const registerCodeRef = ref();
 const suffix = ref('');
 const registerForm = reactive({ email: '', password: '', confirmPassword: '', code: null });
 const domainList = settingStore.domainList;
@@ -459,6 +471,19 @@ window.loadAfter = () => {};
 window.loadBefore = () => {};
 
 const openSelect = () => { mySelect.value.toggleMenu(); };
+
+function focusLoginPassword() { loginPasswordRef.value?.focus(); }
+function focusRegisterPassword() { registerPasswordRef.value?.focus(); }
+function focusRegisterConfirm() { registerConfirmRef.value?.focus(); }
+
+function focusRegisterCodeOrSubmit() {
+  const regKey = settingStore.settings.regKey;
+  if (regKey === 0 || regKey === 2) {
+    registerCodeRef.value?.focus();
+  } else {
+    submitRegister();
+  }
+}
 
 function linuxDoLogin() {
   const clientId = settingStore.settings.linuxdoClientId;

@@ -6,6 +6,7 @@ import BizError from '../error/biz-error';
 import { formatDetailDate, toUtc } from '../utils/date-uitil';
 import userService from './user-service';
 import { t } from '../i18n/i18n.js';
+import { isAdminUser } from '../utils/admin-utils';
 
 const regKeyService = {
 
@@ -37,7 +38,7 @@ const regKeyService = {
 		}
 
 		const userRow = await userService.selectById(c, userId);
-		if (userRow.email !== c.env.admin) {
+		if (!isAdminUser(c.env, userRow)) {
 			const userRoleRow = await roleService.selectById(c, userRow.type);
 			if (userRoleRow && roleRow.level >= userRoleRow.level) {
 				throw new BizError(t('cannotCreateHigherRole'));

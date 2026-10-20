@@ -172,11 +172,12 @@
     </el-dialog>
     <el-dialog class="dialog" v-model="setTypeShow" :title="$t('changePerm')" @closed="resetUserForm">
       <div class="dialog-box">
-        <el-input disabled :model-value="$t('admin')" v-if="userForm.type === 0"/>
+        <el-input disabled :model-value="$t('admin')" v-if="userForm.primaryAdmin"/>
         <el-select v-else v-model="userForm.type" placeholder="Select">
+          <el-option v-if="userStore.user.type === 0" :label="$t('admin')" :value="0"/>
           <el-option v-for="item in roleList" :label="item.name" :value="item.roleId" :key="item.roleId"/>
         </el-select>
-        <el-button :disabled="userForm.type === 0" class="btn" :loading="settingLoading" type="primary" @click="setType"
+        <el-button :disabled="userForm.primaryAdmin" class="btn" :loading="settingLoading" type="primary" @click="setType"
         >{{ $t('save') }}
         </el-button>
       </div>
@@ -200,6 +201,7 @@
         <div class="add-user-field">
           <label class="add-user-label">{{ $t('perm') }}</label>
           <el-select v-model="addForm.type" :placeholder="$t('perm')" style="width: 100%">
+            <el-option v-if="userStore.user.type === 0" :label="$t('admin')" :value="0"/>
             <el-option v-for="item in roleList" :label="item.name" :value="item.roleId" :key="item.roleId"/>
           </el-select>
         </div>
@@ -480,6 +482,7 @@ const userForm = reactive({
   password: null,
   type: -1,
   userId: 0,
+  primaryAdmin: false,
 })
 
 const showAdd = ref(false)
@@ -1011,6 +1014,7 @@ function setType() {
 function resetUserForm() {
   userForm.password = null
   userForm.userId = 0
+  userForm.primaryAdmin = false
 }
 
 function search() {
@@ -1055,6 +1059,7 @@ function openSetType(user) {
   chooseUser = user
   userForm.userId = user.userId
   userForm.type = user.type
+  userForm.primaryAdmin = !!user.primaryAdmin
   setTypeShow.value = true
 }
 

@@ -143,6 +143,10 @@ export const settingConst = {
 	newEmailNotify: {
 		OPEN: 0,
 		CLOSE: 1
+	},
+	pushplusStatus: {
+		OPEN: 0,
+		CLOSE: 1
 	}
 }
 

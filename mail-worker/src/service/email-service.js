@@ -22,6 +22,7 @@ import account from "../entity/account";
 import { att } from '../entity/att';
 import telegramService from './telegram-service';
 import permService from './perm-service';
+import { isAdminUser } from '../utils/admin-utils';
 
 const emailService = {
 
@@ -201,6 +202,7 @@ const emailService = {
 
 		const userRow = await userService.selectById(c, userId);
 		const roleRow = await roleService.selectById(c, userRow.type);
+		const senderIsAdmin = isAdminUser(c.env, userRow);
 
 		//判断接收方是不是全部为站内邮箱
 		const allInternal = receiveEmail.every(email => {
@@ -208,7 +210,7 @@ const emailService = {
 			return domainList.includes(domain);
 		});
 
-		if (c.env.admin !== userRow.email) {
+		if (!senderIsAdmin) {
 
 			//发件被禁用
 			if (roleRow.sendType === 'ban') {
@@ -223,7 +225,7 @@ const emailService = {
 		}
 
 		//如果不是管理员，权限设置了发送次数
-		if (c.env.admin !== userRow.email && roleRow.sendCount) {
+		if (!senderIsAdmin && roleRow.sendCount) {
 
 			if (userRow.sendCount >= roleRow.sendCount) {
 				if (roleRow.sendType === 'day') throw new BizError(t('daySendLimit'), 403);
@@ -247,7 +249,7 @@ const emailService = {
 			throw new BizError(t('sendEmailNotCurUser'));
 		}
 
-		if (c.env.admin !== userRow.email) {
+		if (!senderIsAdmin) {
 			//用户没有这个域名的使用权限
 			if(!roleService.hasAvailDomainPerm(roleRow.availDomain, accountRow.email)) {
 				throw new BizError(t('noDomainPermSend'),403)
@@ -349,7 +351,7 @@ const emailService = {
 		}
 
 		//如果权限有发送次数增加用户发送次数
-		if (roleRow.sendCount && roleRow.sendType !== 'internal') {
+		if (!senderIsAdmin && roleRow.sendCount && roleRow.sendType !== 'internal') {
 			await userService.incrUserSendCount(c, receiveEmail.length, userId);
 		}
 
@@ -428,8 +430,10 @@ const emailService = {
 
 				let { banEmail, availDomain } = roleRow;
 
+				const recipientIsAdmin = isAdminUser(c.env, { email: roleRow.userEmail, type: roleRow.userType });
+
 				//如果收件人没有这个域名的使用权限和有邮件拦截，就把邮件改为拒收状态
-				if (email !== c.env.admin) {
+				if (!recipientIsAdmin) {
 
 					if (!roleService.hasAvailDomainPerm(availDomain, email)) {
 						emailValues.status = emailConst.status.BOUNCED;
@@ -566,7 +570,7 @@ const emailService = {
 		// 非本人邮件需要管理员或全部邮件查看权限
 		if (emailRow.userId !== userId) {
 			const userRow = c.get('user');
-			if (userRow?.email !== c.env.admin) {
+			if (!isAdminUser(c.env, userRow)) {
 				const permKeys = await permService.userPermKeys(c, userId);
 				if (!permKeys.includes('all-email:query')) {
 					throw new BizError(t('unauthorized'), 403);

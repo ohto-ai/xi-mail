@@ -12,6 +12,7 @@ import turnstileService from './turnstile-service';
 import roleService from './role-service';
 import { t } from '../i18n/i18n';
 import verifyRecordService from './verify-record-service';
+import { isAdminUser } from '../utils/admin-utils';
 
 const accountService = {
 
@@ -69,8 +70,9 @@ const accountService = {
 		}
 
 		const userRow = await userService.selectById(c, userId);
+		const isAdmin = isAdminUser(c.env, userRow);
 
-		if (emailKeywordBlacklist.length > 0 && userRow.email !== c.env.admin) {
+		if (emailKeywordBlacklist.length > 0 && !isAdmin) {
 			const emailName = emailUtils.getName(email).toLowerCase();
 			if (emailKeywordBlacklist.some(kw => emailName.includes(kw.toLowerCase()))) {
 				throw new BizError(t('emailKeywordBlocked'));
@@ -79,7 +81,7 @@ const accountService = {
 
 		const roleRow = await roleService.selectById(c, userRow.type);
 
-		if (userRow.email !== c.env.admin) {
+		if (!isAdmin) {
 
 			if (roleRow.accountCount > 0) {
 				const userAccountCount = await accountService.countUserAccount(c, userId)
@@ -95,10 +97,9 @@ const accountService = {
 		let addVerifyOpen = false
 
 		// Admin bypasses Turnstile verification
-		const currentUserEmail = c.get('user')?.email;
-		const isAdmin = currentUserEmail && currentUserEmail === c.env.admin;
+		const currentUserIsAdmin = isAdminUser(c.env, c.get('user'));
 
-		if (!isAdmin) {
+		if (!currentUserIsAdmin) {
 			if (addEmailVerify === settingConst.addEmailVerify.OPEN) {
 				addVerifyOpen = true
 				await turnstileService.verify(c, token);

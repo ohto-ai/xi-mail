@@ -182,7 +182,7 @@ const roleService = {
 			return [];
 		}
 
-		return orm(c).select({ ...role, userId: user.userId }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(inArray(user.userId, userIds)).all();
+		return orm(c).select({ ...role, userId: user.userId, userType: user.type, userEmail: user.email }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(inArray(user.userId, userIds)).all();
 
 	},
 

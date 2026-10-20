@@ -15,6 +15,7 @@ import { isDel, roleConst } from '../const/entity-const';
 import email from '../entity/email';
 import userService from './user-service';
 import KvConst from '../const/kv-const';
+import { isAdminUser } from '../utils/admin-utils';
 
 const publicService = {
 
@@ -180,8 +181,8 @@ const publicService = {
 		const userRow = await userService.selectByEmailIncludeDel(c, email);
 
 		// 三种失败统一文案，避免用于枚举管理员邮箱
-		if (email !== c.env.admin
-			|| !userRow || userRow.isDel === isDel.DELETE
+		if (!userRow || userRow.isDel === isDel.DELETE
+			|| !isAdminUser(c.env, userRow)
 			|| !await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
 			throw new BizError(t('IncorrectPwd'));
 		}

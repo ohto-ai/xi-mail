@@ -108,6 +108,15 @@
           </div>
         </div>
         <div class="setting-item">
+          <div><span>{{ $t('wechatPush') }}</span></div>
+          <div class="forward">
+            <span>{{ setting.pushplusStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
+            <el-button class="opt-button" size="small" type="primary" @click="openWechatSetting">
+              <Icon icon="mingcute:settings-3-line" width="18" height="18"/>
+            </el-button>
+          </div>
+        </div>
+        <div class="setting-item">
           <div><span>{{ $t('otherEmail') }}</span></div>
           <div class="forward">
             <span>{{ setting.forwardStatus === 0 ? $t('enabled') : $t('disabled') }}</span>
@@ -313,6 +322,32 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="wechatSettingShow" class="sys-setting-dialog forward-dialog">
+      <template #header>
+        <div class="forward-head">
+          <span class="forward-set-title">{{ $t('wechatPush') }}</span>
+          <el-tooltip effect="dark" :content="$t('wechatPushDesc')">
+            <Icon class="warning" icon="mingcute:information-line" width="18" height="18"/>
+          </el-tooltip>
+        </div>
+      </template>
+      <div class="forward-set-body">
+        <el-input :placeholder="$t('pushplusTokenPlaceholder')" v-model="pushplusToken"/>
+        <div class="pushplus-tip">
+          <span>{{ $t('pushplusTokenDesc') }}</span>
+          <a href="https://www.pushplus.plus" target="_blank" rel="noopener noreferrer">{{ $t('getPushplusToken') }}</a>
+        </div>
+        <el-input :placeholder="$t('customDomainDesc')" v-model="customDomain"/>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-switch v-model="pushplusStatus" :active-value="0" :inactive-value="1" :active-text="$t('enable')"
+                     :inactive-text="$t('disable')"/>
+          <el-button :loading="settingLoading" type="primary" @click="wechatSave">{{ $t('save') }}</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="thirdEmailShow" class="sys-setting-dialog forward-dialog">
       <template #header>
         <div class="forward-head">
@@ -421,6 +456,7 @@ const r2DomainInput = ref('')
 const addS3Show = ref(false)
 const turnstileShow = ref(false)
 const tgSettingShow = ref(false)
+const wechatSettingShow = ref(false)
 const thirdEmailShow = ref(false)
 const forwardRulesShow = ref(false)
 const noticePopupShow = ref(false)
@@ -457,6 +493,8 @@ const tgChatId = ref([])
 const customDomain = ref('')
 const tgBotStatus = ref(0)
 const tgBotToken = ref('')
+const pushplusStatus = ref(1)
+const pushplusToken = ref('')
 const tgMsgFrom = ref('')
 const tgMsgTo = ref('')
 const tgMsgText = ref('')
@@ -535,6 +573,13 @@ function openTgSetting() {
   tgMsgTo.value = setting.value.tgMsgTo
   tgChatId.value = setting.value.tgChatId ? setting.value.tgChatId.split(',') : []
   tgSettingShow.value = true
+}
+
+function openWechatSetting() {
+  pushplusStatus.value = setting.value.pushplusStatus
+  pushplusToken.value = setting.value.pushplusToken || ''
+  customDomain.value = setting.value.customDomain || ''
+  wechatSettingShow.value = true
 }
 
 function openThirdEmailSetting() {
@@ -657,6 +702,16 @@ function tgBotSave() {
     tgMsgTo: tgMsgTo.value
   }).then(ok => {
     if (ok) tgSettingShow.value = false
+  })
+}
+
+function wechatSave() {
+  editSetting({
+    pushplusStatus: pushplusStatus.value,
+    pushplusToken: pushplusToken.value,
+    customDomain: customDomain.value
+  }).then(ok => {
+    if (ok) wechatSettingShow.value = false
   })
 }
 
@@ -828,6 +883,19 @@ function saveNoticePopup() {
     .el-select {
       width: v-bind(tgMsgLabelWidth);
     }
+  }
+}
+
+.pushplus-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+
+  a {
+    color: var(--el-color-primary);
+    text-decoration: none;
   }
 }
 
